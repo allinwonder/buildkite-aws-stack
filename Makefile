@@ -1,4 +1,4 @@
-.PHONY: all clean build build-ami upload create-stack update-stack download-mappings
+.PHONY: all clean build build-ami upload create-stack create-stack-and-wait update-stack update-stack-and-wait download-mappings
 
 BUILDKITE_STACK_BUCKET ?= buildkite-aws-stack
 BRANCH ?= $(shell git rev-parse --abbrev-ref HEAD)
@@ -38,6 +38,11 @@ upload: build/aws-stack.json
 config.json:
 	test -s config.json || $(error Please create a config.json file)
 
+create-stack-and-wait: create-stack wait-for-ceate-stack-complete 
+
+wait-for-ceate-stack-complete:
+	aws cloudformation wait stack-create-complete --stack-name ${STACK_NAME}
+
 create-stack: config.json build/aws-stack.json
 	aws cloudformation create-stack \
 	--output text \
@@ -51,6 +56,11 @@ validate: build/aws-stack.json
 	aws cloudformation validate-template \
 	--output table \
 	--template-body "file://${PWD}/build/aws-stack.json"
+
+update-stack-and-wait: update-stack wait-for-update-stack-complete
+
+wait-for-update-stack-complete:
+	aws cloudformation wait stack-update-complete --stack-name ${STACK_NAME}
 
 update-stack: config.json templates/mappings.yml build/aws-stack.json
 	aws cloudformation update-stack \
